@@ -1,7 +1,7 @@
-import React from 'react';
+import React from 'react'; 
 
-function HomePage() {
-  return (
+function HomePage() {    
+    return (
     <main className="center" id="main">
     <div className="page-area">
 
@@ -39,13 +39,10 @@ function HomePage() {
 
         <article >
             <h2>Chart</h2>
-            <p>
-              <canvas id="myChart" width="400" height="400"></canvas>
-            </p>
+
         </article>
     </div>
 </main>  
-    );
-}
+)};
 
 export default HomePage;

@@ -39,7 +39,6 @@ function HomePage() {
 
         <article >
             <h2>Chart</h2>
-
         </article>
     </div>
 </main>  

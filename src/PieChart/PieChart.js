@@ -1,118 +1,88 @@
-import React, { useEffect, useState } from 'react'; // Added useState
+import React, { useEffect, useRef } from 'react';
 import axios from 'axios';
 import Chart from 'chart.js/auto';
 import * as d3 from 'd3';
 
-function PieChart(props) {
-    const [data, setData] = useState([
-        { label: 'Eat out', value: 30 },
-        { label: 'Rent', value: 350 },
-        { label: 'Groceries', value: 90 },
-    ]);
 
-    const { outerRadius, innerRadius } = props;
+const PieChart = () => {
+  const chartRef = useRef(null);
+  const svgRef = useRef(null);
 
-    const width = 400;
-    const height = 400;
+  const commonData = {
+    datasets: [
+      {
+        data: [],
+        backgroundColor: ['#ffcd56', '#ff6384', '#36a2eb', '#fd6b19'],
+      },
+    ],
+    labels: [],
+  };
 
-    const colorScale = d3
-        .scaleSequential()
-        .interpolator(d3.interpolateCool)
-        .domain([0, data.length]);
+  const margin = 20;
+  const width = 400;
+  const height = 400;
+  const radius = Math.min(width, height) / 2 - margin;
 
-    function createChart() {
-        var ctx = document.getElementById('myChart').getContext('2d');
-        var myPieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            datasets: [
-            {
-                data: data.map((item) => item.value), 
-                backgroundColor: [
-                '#ffcd56',
-                '#ff6384',
-                '#36a2eb',
-                '#fd6b19',
-                ],
-            },
-            ],
-            labels: data.map((item) => item.label), 
-        },
-        });
+  useEffect(() => {
+    axios.get('http://localhost:3001/budget').then((res) => {
+      const updatedData = res.data.myBudget.map((item) => item.budget);
+      const updatedLabels = res.data.myBudget.map((item) => item.title);
+      commonData.datasets[0].data = updatedData;
+      commonData.labels = updatedLabels;
+
+      var ctx = chartRef.current.getContext('2d');
+      if (ctx) {
+        var myPieChart = new Chart(ctx, {type: 'pie',data: commonData,});
     }
 
-    function getBudget() {
-        axios.get('http://localhost:3001/budget').then(function (res) {
-        console.log(res);
-        const newData = randomData(res.data.myBudget);
-        setData(newData); 
-        createChart(); 
-        });
-    }
+      const svg = d3.select(svgRef.current)
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .append('g')
+        .attr('transform', `translate(${width / 2},${height / 2})`);
 
-    function randomData (dataSource){
-        return dataSource.map(function(data){
-        return { label: data.title, value: data.budget }
-        });
-    }
-    useEffect(() => {
-        drawChart();
-                // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data]);
-            
-        
-            function drawChart() {
-                console.log(typeof(width),typeof(height));
-                d3.select('#pie-container')
-                .select('svg')
-                .remove();
-            const svg = d3
-                .select('#pie-container')
-                .append('svg')
-                .attr('width', width)
-                .attr('height', height)
-                .append('g')
-                .attr("transform", "translate(" + 200 + "," + 200 + ")")        
-            const arcGenerator = d3
-                .arc()
-                .innerRadius(innerRadius)
-                .outerRadius(outerRadius);
-        
-            const pieGenerator = d3
-                .pie()
-                .padAngle(0)
-                .value((d) => d.value);
-        
-            const arc = svg
-                .selectAll()
-                .data(pieGenerator(data))
-                .enter();
-        
-            arc
-                .append('path')
-                .attr('d', arcGenerator)
-                .style('fill', (_, i) => colorScale(i))
-                .style('stroke', '#ffffff')
-                .style('stroke-width', 0);
-        
-            arc
-                .append('text')
-                .attr('text-anchor', 'middle')
-                .attr('alignment-baseline', 'middle')
-                .text((d) => d.data.label)
-                .style('fill', (_, i) => colorScale(data.length - i))
-                .attr('transform', (d) => {
-                const [x, y] = arcGenerator.centroid(d);
-                console.log(typeof (x), typeof(y));
-                return `translate(${x}, ${y})`;
-                });
-            }              
-            
-    return (
-        <div id="pie-container">
-            <canvas id="myChart" width="400" height="400"></canvas>
-        </div>
-    );
-}
+      const colors = d3.scaleOrdinal()
+        .domain(commonData.labels)
+        .range(['#ffcd56', '#ff6384', '#36a2eb', '#fd6b19']);
+
+      const pie = d3.pie().value((d) => commonData.datasets[0].data[commonData.labels.indexOf(d.Framework)]);
+
+      svg.selectAll('pieces')
+        .data(pie(commonData.labels.map((label) => ({ Framework: label }))))
+        .enter()
+        .append('path')
+        .attr('d', d3.arc()
+          .innerRadius(0)
+          .outerRadius(radius)
+        )
+        .attr('fill', (d) => colors(d.data.Framework))
+        .attr('stroke', '#121926')
+        .style('stroke-width', '1px');
+
+      const labelLocation = d3.arc()
+        .innerRadius(100)
+        .outerRadius(radius);
+
+      svg.selectAll('pieces')
+        .data(pie(commonData.labels.map((label) => ({ Framework: label }))))
+        .enter()
+        .append('text')
+        .text((d) => d.data.Framework)
+        .attr('transform', (d) => `translate(${labelLocation.centroid(d)})`)
+        .style('text-anchor', 'middle')
+        .style('font-size', 15);
+    });
+  }, []);
+
+  return (
+    <div>
+      <canvas id="myChart" ref={chartRef}></canvas>
+      <div ref={svgRef}></div>
+    </div>
+  );
+};
 
 export default PieChart;
+
+

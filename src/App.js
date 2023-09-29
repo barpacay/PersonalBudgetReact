@@ -34,7 +34,7 @@ function App() {
         </Routes>
       </div>
     <PieChart/>
-      <Footer />
+    <Footer />
     </Router>
   );
 }
